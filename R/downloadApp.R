@@ -17,7 +17,7 @@ downloadApp <- function(id) {
   ui <- bslib::page_sidebar(
     title = "Test Download",
     sidebar = bslib::sidebar("side_panel",
-      downloadInput("download"), # plot_table, height
+      downloadInput("download"), # plot_table, preset
       downloadOutput("download") # downloadButton, filename
     ),
     bslib::card(
@@ -62,30 +62,29 @@ downloadServer <- function(id, download_list) {
           Tables = DT::dataTableOutput(ns("preview_table")))
       )
     })
-    plots <- shiny::reactive({
-      plot_list <- shiny::req(download_list$plots)
-      for(p in input$plot_choice) {
-        print(plot_list[[p]]())
-      }
+    chosen_plot <- shiny::reactive({
+      plot <- shiny::req(input$plot_choice)
+      shiny::req(download_list$plots[[plot]]())
     })
     output$preview_plots <- shiny::renderPlot({
-      plots()
+      print(shiny::req(chosen_plot()))
     })
     chosen_table <- shiny::reactive({
       table <- shiny::req(input$table_choice)
-      table <- shiny::req(download_list$tables[[table]]())
+      shiny::req(download_list$tables[[table]]())
     })
     output$preview_table <- DT::renderDataTable({
-      chosen_table()
+      shiny::req(chosen_table())
     })
     output$choices <- shiny::renderUI({
       switch(shiny::req(input$plot_table),
         Plots = {
           list(
-            shiny::selectInput(ns("plot_choice"), "Plots:", NULL,
-                               multiple = TRUE),
-            shiny::sliderInput(ns("height"), "Plot height (in):",
-                               3, 10, 6, step = 1)
+            shiny::selectInput(ns("plot_choice"), "Plots:", NULL),
+            shiny::selectInput(ns("png_pdf"), "",
+              choices = c("PNG","PDF")),
+            shiny::selectInput(ns("preset"), "Plot preset ratio:",
+              choices = c("1to1","3to2","16to9"))
           )
         },
         Tables = {
@@ -96,7 +95,7 @@ downloadServer <- function(id, download_list) {
     shiny::observeEvent(shiny::req(input$plot_table, download_list$plots), {
       choices = names(download_list$plots)
       shiny::updateSelectInput(session, "plot_choice", 
-        choices = choices, selected = choices)
+        choices = choices, selected = NULL)
     })
     shiny::observeEvent(shiny::req(input$plot_table, download_list$tables), {
       choices = names(download_list$tables)
@@ -116,11 +115,32 @@ downloadServer <- function(id, download_list) {
       shiny::textAreaInput(ns("filename"), "File Base Name:", filename)
     })
     output$Plots <- shiny::downloadHandler(
-      filename = function() paste0(shiny::req(input$filename), ".pdf"),
+      filename = function() paste0(shiny::req(input$filename),
+                                   ".", tolower(input$png_pdf)),
       content = function(file) {
-        shiny::req(input$plot_choice, input$height)
-        grDevices::pdf(file, width = 9, height = input$height)
-        plots()
+        shiny::req(input$plot_choice, input$preset, input$png_pdf)
+        switch(input$preset,
+          "1to1" = {
+            width = 800
+            height = 800
+          },
+          "3to2" = {
+            width = 900
+            height = 600
+          },
+          "16to9" = {
+            width = 1600
+            height = 900
+          })
+        switch(input$png_pdf,
+          "PNG" = {
+            grDevices::png(file, width = width, height = height)
+          },
+          "PDF" = {
+            grDevices::pdf(file, width = width / 72,
+                           height = height / 72)
+          })
+        print(chosen_plot())
         grDevices::dev.off()
       },
       contentType = "application/pdf")
@@ -147,6 +167,7 @@ downloadInput <- function(id) {
 downloadUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::uiOutput(ns("download_list"))
+  # ** add png/pdf **
 }
 #' @rdname downloadApp
 #' @export
