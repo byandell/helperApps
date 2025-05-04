@@ -55,8 +55,28 @@ downloadServer <- function(id, download_list) {
         paste(names(download_list$plots), collapse = ", "),
         shiny::br(),
         "tables", 
-        paste(names(download_list$tables), collapse = ", ")
+        paste(names(download_list$tables), collapse = ", "),
+        switch(shiny::req(input$plot_table),
+         # ** this only shows last plot **
+          Plots  = shiny::plotOutput(ns("preview_plots")),
+          Tables = DT::dataTableOutput(ns("preview_table")))
       )
+    })
+    plots <- shiny::reactive({
+      plot_list <- shiny::req(download_list$plots)
+      for(p in input$plot_choice) {
+        print(plot_list[[p]]())
+      }
+    })
+    output$preview_plots <- shiny::renderPlot({
+      plots()
+    })
+    chosen_table <- shiny::reactive({
+      table <- shiny::req(input$table_choice)
+      table <- shiny::req(download_list$tables[[table]]())
+    })
+    output$preview_table <- DT::renderDataTable({
+      chosen_table()
     })
     output$choices <- shiny::renderUI({
       switch(shiny::req(input$plot_table),
@@ -100,18 +120,14 @@ downloadServer <- function(id, download_list) {
       content = function(file) {
         shiny::req(input$plot_choice, input$height)
         grDevices::pdf(file, width = 9, height = input$height)
-        plots <- shiny::req(download_list$plots)
-        for(p in input$plot_choice) {
-          print(plots[[p]]())
-        }
+        plots()
         grDevices::dev.off()
       },
       contentType = "application/pdf")
     output$Tables <- shiny::downloadHandler(
       filename = function() paste0(shiny::req(input$filename), ".csv"),
       content = function(file) {
-        table <- shiny::req(input$table_choice)
-        table <- shiny::req(download_list$tables[[table]]())
+        chosen_table()
         utils::write.csv(table, file, row.names = FALSE)
       })
   })
