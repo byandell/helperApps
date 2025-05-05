@@ -7,5 +7,5 @@ plot_null <- function (msg = "no data", size = 10, angle = 0)
       .data$y,
       label = msg) +
     ggplot2::geom_text(size = size, angle = angle) + 
-    ggplot2::theme_void()
+    ggplot2::theme_minimal()
 }

@@ -16,8 +16,8 @@ downloadApp <- function(id) {
   source("R/plot_null.R")
   ui <- bslib::page_sidebar(
     title = "Test Download",
-    sidebar = bslib::sidebar("side_panel",
-      downloadInput("download"), # plot_table, preset
+    sidebar = bslib::sidebar("side_panel", width = 500,
+      downloadInput("download"), # plot_table, inputs for Plots or Tables
       downloadOutput("download") # downloadButton, filename
     ),
     bslib::card(
@@ -58,19 +58,23 @@ downloadServer <- function(id, download_list) {
         paste(names(download_list$tables), collapse = ", "),
         switch(shiny::req(input$plot_table),
          # ** this only shows last plot **
-          Plots  = shiny::plotOutput(ns("preview_plots")),
+          Plots  = shiny::uiOutput(ns("preview_plots")),
           Tables = DT::dataTableOutput(ns("preview_table")))
       )
     })
     chosen_plot <- shiny::reactive({
-      plot <- shiny::req(input$plot_choice)
+      plot <- shiny::req(input$Plots_choice)
       shiny::req(download_list$plots[[plot]]())
     })
-    output$preview_plots <- shiny::renderPlot({
-      print(shiny::req(chosen_plot()))
+    output$preview_plots <- shiny::renderUI({
+      width <- shiny::reactive(plot_width() / 2)
+      height <- shiny::reactive(plot_height() / 2)
+      shiny::renderPlot({
+        shiny::req(chosen_plot())
+      }, width = width, height = height)
     })
     chosen_table <- shiny::reactive({
-      table <- shiny::req(input$table_choice)
+      table <- shiny::req(input$Tables_choice)
       shiny::req(download_list$tables[[table]]())
     })
     output$preview_table <- DT::renderDataTable({
@@ -79,27 +83,39 @@ downloadServer <- function(id, download_list) {
     output$choices <- shiny::renderUI({
       switch(shiny::req(input$plot_table),
         Plots = {
-          list(
-            shiny::selectInput(ns("plot_choice"), "Plots:", NULL),
-            shiny::selectInput(ns("png_pdf"), "",
-              choices = c("PNG","PDF")),
-            shiny::selectInput(ns("preset"), "Plot preset ratio:",
-              choices = c("1to1","3to2","16to9"))
-          )
+          bslib::layout_columns(
+            shiny::radioButtons(ns("Plots_choice"), "Plot:",
+              "", inline = TRUE),
+            shiny::radioButtons(ns("png_pdf"), "",
+              choices = c("PNG","PDF"), inline = TRUE),
+            shiny::radioButtons(ns("ratio"), "Ratio",
+              choices = c("1to1","3to2","16to9"), inline = TRUE))
         },
         Tables = {
-          shiny::selectInput(ns("table_choice"), "Table:", NULL)
+          shiny::radioButtons(ns("Tables_choice"), "Table:", "", inline = TRUE)
         })
       
     })
+    plot_width <- shiny::reactive({
+      switch(shiny::req(input$ratio),
+             "1to1" = 800,
+             "3to2" = 900,
+             "16to9" = 1600)
+    })
+    plot_height <- shiny::reactive({
+      switch(shiny::req(input$ratio),
+             "1to1" = 800,
+             "3to2" = 600,
+             "16to9" = 900)
+    })
     shiny::observeEvent(shiny::req(input$plot_table, download_list$plots), {
       choices = names(download_list$plots)
-      shiny::updateSelectInput(session, "plot_choice", 
+      shiny::updateRadioButtons(session, "Plots_choice", 
         choices = choices, selected = NULL)
     })
     shiny::observeEvent(shiny::req(input$plot_table, download_list$tables), {
       choices = names(download_list$tables)
-      shiny::updateSelectInput(session, "table_choice",
+      shiny::updateRadioButtons(session, "Tables_choice",
         choices = choices, selected = NULL)
     })
     output$downloads <- shiny::renderUI({
@@ -108,37 +124,25 @@ downloadServer <- function(id, download_list) {
     })
     output$filename <- renderUI({
       filename <- paste0(shiny::req(download_list$filename))
-      if(shiny::req(input$plot_table) == "Tables") {
-        table <- shiny::req(input$table_choice)
-        filename <- paste(table, filename, sep = "_")
-      }
-      shiny::textAreaInput(ns("filename"), "File Base Name:", filename)
+      # Prepend filename with Plots or Tables choice.
+      filename <- paste(
+        shiny::req(input[[
+          paste(shiny::req(input$plot_table), "choice", sep = "_")]]),
+        filename, sep = "_")
+      shiny::textAreaInput(ns("filename"), "File Basename:", filename)
     })
     output$Plots <- shiny::downloadHandler(
       filename = function() paste0(shiny::req(input$filename),
                                    ".", tolower(input$png_pdf)),
       content = function(file) {
-        shiny::req(input$plot_choice, input$preset, input$png_pdf)
-        switch(input$preset,
-          "1to1" = {
-            width = 800
-            height = 800
-          },
-          "3to2" = {
-            width = 900
-            height = 600
-          },
-          "16to9" = {
-            width = 1600
-            height = 900
-          })
+        shiny::req(input$Plots_choice, input$ratio, input$png_pdf)
         switch(input$png_pdf,
           "PNG" = {
-            grDevices::png(file, width = width, height = height)
+            grDevices::png(file, width = plot_width(), height = plot_height())
           },
           "PDF" = {
-            grDevices::pdf(file, width = width / 72,
-                           height = height / 72)
+            grDevices::pdf(file, width = plot_width() / 72,
+                           height = plot_height() / 72)
           })
         print(chosen_plot())
         grDevices::dev.off()
