@@ -6,17 +6,18 @@
 #' @param download_list reactiveValues with  postfix,plot,table
 #' @return nothing 
 #'
-#' @importFrom shiny column downloadButton downloadHandler fluidRow
-#'             moduleServer NS radioButtons reactive renderUI req
-#'             textAreaInput uiOutput
+#' @importFrom shiny br downloadButton downloadHandler h5 moduleServer NS
+#'             observeEvent radioButtons reactive reactiveValues renderPlot
+#'             renderUI req shinyApp textAreaInput uiOutput updateRadioButtons
 #' @importFrom utils write.csv    
 #' @importFrom grDevices dev.off pdf
+#' @importFrom bslib card card_header layout_columns page_sidebar sidebar
 #' @export
 downloadApp <- function(id) {
   source("R/plot_null.R")
   ui <- bslib::page_sidebar(
     title = "Test Download",
-    sidebar = bslib::sidebar("side_panel", width = 500,
+    sidebar = bslib::sidebar("side_panel", width = 400,
       downloadInput("download"), # plot_table, inputs for Plots or Tables
       downloadOutput("download") # downloadButton, filename
     ),
@@ -47,7 +48,7 @@ downloadServer <- function(id, download_list) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
     output$download_list <- shiny::renderUI({
-      shiny::tagList(
+      list(
         "filename",
         download_list$filename,
         shiny::br(),
@@ -177,9 +178,10 @@ downloadUI <- function(id) {
 #' @export
 downloadOutput <- function(id) {
   ns <- shiny::NS(id)
-  shiny::tagList(
+  list(
     shiny::h5("Download:"),
-    shiny::fluidRow(
-      shiny::column(3, shiny::uiOutput(ns("downloads"))),
-      shiny::column(9, shiny::uiOutput(ns("filename")))))
+    bslib::layout_columns(
+      shiny::uiOutput(ns("downloads")),
+      shiny::uiOutput(ns("filename")),
+      col_widths = c(3,9)))
 }
