@@ -1,4 +1,6 @@
-# Null Plot
+#' Null Plot
+#' @importFrom ggplot2 aes geom_text ggplot theme_minimal
+#' @importFrom rlang .data
 plot_null <- function (msg = "no data", size = 10, angle = 0) 
 {
   ggplot2::ggplot(data.frame(x = 1, y = 1)) +

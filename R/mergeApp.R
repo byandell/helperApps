@@ -1,23 +1,19 @@
 #' Merge App
 #'
 #' @param id identifier for shiny reactive
-#' @param prefix static prefix for filename
-#' @param main_par input parameters from calling routine
-#' @param download_list reactiveValues with  postfix,plot,table
-#' @return nothing 
+#' @param primary_list,secondary_list reactiveValues objects
 #'
-#' @importFrom shiny isolate moduleServer NS
-#'             observeEvent reactive reactiveValues shinyApp  
+#' @importFrom shiny isolate isTruthy moduleServer NS
+#'             observeEvent reactive reactiveValues shinyApp textAreaInput
 #' @importFrom bslib card card_header page_sidebar sidebar
 #' @export
 mergeApp <- function(id) {
-  source("R/plot_null.R")
-  source("R/downloadApp.R")
   ui <- bslib::page_sidebar(
     title = "Test Merge",
     sidebar = bslib::sidebar("side_panel", width = 400,
-      downloadInput("download"), 
-      downloadOutput("download") 
+      mergeUI("merged_list"),    # filename (optional)
+      downloadInput("download"), # plot_table, inputs for Plots or Tables
+      downloadOutput("download") # downloadButton, filename
     ),
     bslib::card(
       bslib::card_header("Merge Preview"),
@@ -27,8 +23,10 @@ mergeApp <- function(id) {
   server <- function(input, output, session) { 
     # Test sets
     primary_list <- shiny::reactiveValues(
-      filename = shiny::reactive("panelID_instanceID"),
+      filename = "panelID_instanceID",
+      no_download = c("plots_skip"),
       plots = shiny::reactiveValues(
+        skip = shiny::reactive(plot_null("skip")),
         none = shiny::reactive(plot_null("nothing")),
         some = shiny::reactive(plot_null("something"))),
       tables = shiny::reactiveValues(
@@ -36,7 +34,8 @@ mergeApp <- function(id) {
         twenty = shiny::reactive(matrix(1:20,nrow=4)))
     )
     secondary_list <- shiny::reactiveValues(
-      filename = shiny::reactive("secondary"),
+      filename = "secondary",
+      no_download = c("tables_ten"),
       plots = shiny::reactiveValues(
         a = shiny::reactive(plot_null("aaaa")),
         b = shiny::reactive(plot_null("bbbb"))),
@@ -54,24 +53,51 @@ mergeApp <- function(id) {
 mergeServer <- function(id, primary_list, secondary_list) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    merged_plots <- shiny::isolate({
-      out <- primary_list$plots
-      for(i in names(secondary_list$plots))
-        out[[i]] <- secondary_list$plots[[i]]
-      out
+    # Create new reactiveValues for `plots` and `tables`.
+    merged_plots <- shiny::reactiveValues()
+    merged_tables <- shiny::reactiveValues()
+    shiny::isolate({
+      # Populate with `primary_list` `plots` and `tables`.
+      for(i in names(primary_list$plots)) {
+        merged_plots[[i]] <- primary_list$plots[[i]]
+      }
+      for(i in names(primary_list$tables)) {
+        merged_tables[[i]] <- primary_list$tables[[i]]
+      }
+      # Merge in data from `secondary_list`.
+      for(i in names(secondary_list$plots)) {
+        if(!(i %in% names(merged_plots)))
+          merged_plots[[i]] <- secondary_list$plots[[i]]
+      }
+      for(i in names(secondary_list$tables)) {
+        if(!(i %in% names(merged_tables)))
+           merged_tables[[i]] <- secondary_list$tables[[i]]
+      }
     })
-    merged_tables <- shiny::isolate({
-      out <- primary_list$tables
-      for(i in names(secondary_list$tables))
-        out[[i]] <- secondary_list$tables[[i]]
-      out
+    output$filename <- renderUI({
+      filename <- primary_list$filename
+      shiny::textAreaInput(ns("filename"), "Test File Basename:", filename)
     })
+    # Create new reactiveValues `merged_list`.
     merged_list <- shiny::reactiveValues(
-      filename = shiny::isolate(primary_list$filename),
+      filename = shiny::isolate({
+        if(shiny::isTruthy(input$filename))
+          input$filename
+        else
+          primary_list$filename
+      }),
+      no_download = shiny::isolate({
+        unique(c(primary_list$no_download, secondary_list$no_download))
+      }),
       plots = merged_plots,
-      tables = merged_tables
-    )
+      tables = merged_tables)
     # Return
     merged_list
   })
+}
+#' @rdname mergeApp
+#' @export
+mergeUI <- function(id) {
+  ns <- shiny::NS(id)
+  shiny::uiOutput(ns("filename"))
 }
