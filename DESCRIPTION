@@ -1,6 +1,6 @@
-Package: shinyApp
-Version: 0.1.0
-Date: 2025-05-09
+Package: helperApps
+Version: 0.2.0
+Date: 2025-05-12
 Title: Shiny app modules for reuse in other packages
 Description: Tools to build Shiny Apps for data visualization.
 Authors@R: c(person("Brian S Yandell",

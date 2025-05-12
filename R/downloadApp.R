@@ -18,8 +18,11 @@ downloadApp <- function(id) {
       downloadOutput("download") # downloadButton, filename
     ),
     bslib::card(
-      bslib::card_header("Download Preview"),
       downloadUI("download")
+    ),
+    bslib::card(
+      bslib::card_header("Download Preview"),
+      downloadShow("download")
     )
   )
   server <- function(input, output, session) { 
@@ -171,18 +174,14 @@ downloadServer <- function(id, download_list) {
 #' @export
 downloadInput <- function(id) {
   ns <- shiny::NS(id)
-  list(
-    shiny::radioButtons(ns("plot_table"), "", c("Plots","Tables"), "Plots",
-                        inline = TRUE),
-    shiny::uiOutput(ns("choices"))
-  )
+  shiny::radioButtons(ns("plot_table"), "", c("Plots","Tables"), "Plots",
+                        inline = TRUE)
 }
 #' @rdname downloadApp
 #' @export
 downloadUI <- function(id) {
   ns <- shiny::NS(id)
-  shiny::uiOutput(ns("download_list"))
-  # ** add png/pdf **
+  shiny::uiOutput(ns("choices"))
 }
 #' @rdname downloadApp
 #' @export
@@ -195,3 +194,10 @@ downloadOutput <- function(id) {
       shiny::uiOutput(ns("filename")),
       col_widths = c(3,9)))
 }
+#' @rdname downloadApp
+#' @export
+downloadShow <- function(id) {
+  ns <- shiny::NS(id)
+  shiny::uiOutput(ns("download_list"))
+}
+  

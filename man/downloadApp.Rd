@@ -6,6 +6,7 @@
 \alias{downloadInput}
 \alias{downloadUI}
 \alias{downloadOutput}
+\alias{downloadShow}
 \title{Download App}
 \usage{
 downloadApp(id)
@@ -17,6 +18,8 @@ downloadInput(id)
 downloadUI(id)
 
 downloadOutput(id)
+
+downloadShow(id)
 }
 \arguments{
 \item{id}{identifier for shiny reactive}
