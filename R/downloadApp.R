@@ -12,7 +12,7 @@
 #' @export
 downloadApp <- function(id) {
   ui <- bslib::page_sidebar(
-    title = "Test Download",
+    title = "Test Kalynn Download",
     sidebar = bslib::sidebar("side_panel", width = 400,
       downloadInput("download"), # plot_table, inputs for Plots or Tables
       downloadOutput("download") # downloadButton, filename
@@ -22,7 +22,7 @@ downloadApp <- function(id) {
     ),
     bslib::card(
       bslib::card_header("Download Preview"),
-      downloadShow("download")
+      downloadShow("download")    # Only for Preview of downloadApp().
     )
   )
   server <- function(input, output, session) { 
@@ -48,6 +48,36 @@ downloadApp <- function(id) {
 downloadServer <- function(id, download_list) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    
+    plot_width_rv <- shiny::reactiveVal(1200)
+    plot_height_rv <- shiny::reactiveVal(600)
+    use_alternating_colors_rv <- shiny::reactiveVal(TRUE)
+    clicked_plotly_point_details_rv <- shiny::reactiveVal(NULL)
+    
+    shiny::observeEvent(input$plot_width, { plot_width_rv(input$plot_width) }, ignoreNULL = TRUE)
+    shiny::observeEvent(input$plot_height, { plot_height_rv(input$plot_height) }, ignoreNULL = TRUE)
+    
+    shiny::observeEvent(input$preset_1to1, {
+      shiny::updateNumericInput(session, "plot_width", value = 800)
+      shiny::updateNumericInput(session, "plot_height", value = 800)
+    })
+    shiny::observeEvent(input$preset_3to2, {
+      shiny::updateNumericInput(session, "plot_width", value = 900)
+      shiny::updateNumericInput(session, "plot_height", value = 600)
+    })
+    shiny::observeEvent(input$preset_16to9, {
+      shiny::updateNumericInput(session, "plot_width", value = 1280)
+      shiny::updateNumericInput(session, "plot_height", value = 720)
+    })
+    
+    shiny::observeEvent(input$color_toggle, {
+      if(is.logical(input$color_toggle)){
+        use_alternating_colors_rv(input$color_toggle)
+      } else {
+        use_alternating_colors_rv(!use_alternating_colors_rv())
+      }
+    })
+    
     output$download_list <- shiny::renderUI({
       list(
         "filename",
@@ -72,8 +102,8 @@ downloadServer <- function(id, download_list) {
       shiny::req(download_list$plots[[plot]]())
     })
     output$preview_plots <- shiny::renderUI({
-      width <- shiny::reactive(plot_width() / 2)
-      height <- shiny::reactive(plot_height() / 2)
+      width <- shiny::reactive(plot_width_rv() / 2)
+      height <- shiny::reactive(plot_height_rv() / 2)
       shiny::renderPlot({
         shiny::req(selected_plot())
       }, width = width, height = height)
@@ -91,28 +121,74 @@ downloadServer <- function(id, download_list) {
           bslib::layout_columns(
             shiny::radioButtons(ns("Plots_choice"), "Plot:",
               "", inline = TRUE),
-            shiny::radioButtons(ns("png_pdf"), "",
-              choices = c("PNG","PDF"), inline = TRUE),
-            shiny::radioButtons(ns("ratio"), "Ratio",
-              choices = c("16to9","3to2","1to1"), inline = TRUE))
+            shiny::uiOutput(ns("choices_Plots"))
+          )
         },
         Tables = {
           shiny::radioButtons(ns("Tables_choice"), "Table:", "", inline = TRUE)
         })
-      
     })
-    plot_width <- shiny::reactive({
-      switch(shiny::req(input$ratio),
-             "1to1" = 800,
-             "3to2" = 900,
-             "16to9" = 1600)
-    })
-    plot_height <- shiny::reactive({
-      switch(shiny::req(input$ratio),
-             "1to1" = 800,
-             "3to2" = 600,
-             "16to9" = 900)
-    })
+    output$choices_Plots <- shiny::renderUI({
+      # Use supplied `create_` functions or standard `shiny`.
+      if (!exists("create_button", mode = "function")) {
+        create_button <- shiny::actionButton
+      }
+      if (!exists("create_download_button", mode = "function")) {
+        create_download_button <- shiny::downloadButton
+        button_class <- "btn-sm"
+      } else {
+        button_class <- "btn-sm btn-light"
+      }
+      if (!exists("create_numeric_input", mode = "function")) {
+        create_numeric_input <- shiny::numericInput
+      }
+      if (!exists("create_lever_switch", mode = "function")) {
+        create_lever_switch <- shiny::checkboxInput
+      }
+      list(
+        # Row for plot title, download buttons, and preset buttons
+        shiny::div(
+          style = paste("display: flex; justify-content: space-between;",
+                        "align-items: center; margin-bottom: 10px;",
+                        "flex-wrap: wrap;"),
+          shiny::h4(
+            "LOD Score Plot",
+            style = "margin: 0 15px 0 0; color: #2c3e50; font-weight: 600;"),
+          shiny::div(
+            style = paste("display: flex; align-items: center; gap: 10px;",
+                          "flex-grow: 1; justify-content: flex-end;"),
+            # Preset Aspect Ratio Buttons
+            shiny::div(
+              style = "display: flex; gap: 5px; margin-right: 15px;",
+              shiny::tagList(
+                create_button(ns("preset_1to1"), "1:1", class = button_class),
+                create_button(ns("preset_3to2"), "3:2", class = button_class),
+                create_button(ns("preset_16to9"), "16:9", class = button_class)
+              )
+            ),
+            # Download Buttons
+            shiny::tagList(
+              create_download_button(ns("download_plot_png"), "PNG",
+                                     class = "btn-sm"),
+              create_download_button(ns("download_plot_pdf"), "PDF",
+                                     class = "btn-sm")
+            )
+          )
+        ),
+        # Row for plot dimension controls and color toggle
+        shiny::div(
+          style = "display: flex; gap: 10px; align-items: center; margin-bottom: 5px; flex-wrap: wrap;",
+          shiny::div(
+            style = "display: flex; align-items: center; gap: 10px;",
+            create_numeric_input(ns("plot_width"), "Width:",
+              value = 1200, min = 400, max = 2000, step = 50, width = "100px"),
+            create_numeric_input(ns("plot_height"), "Height:",
+              value = 600, min = 300, max = 1200, step = 50, width = "100px")
+          ),
+          create_lever_switch(ns("color_toggle"), "Alt Colors", value = TRUE)
+        )
+      )
+    }) 
     choices_download <- function(type) {
       # Choices excluding any in `no_download` vector.
       choices = names(download_list[[type]])
@@ -132,10 +208,6 @@ downloadServer <- function(id, download_list) {
       shiny::updateRadioButtons(session, "Tables_choice",
         choices = choices, selected = NULL)
     })
-    output$downloads <- shiny::renderUI({
-      plot_table <- shiny::req(input$plot_table)
-      shiny::downloadButton(ns(plot_table), plot_table)
-    })
     output$filename <- renderUI({
       filename <- paste0(shiny::req(download_list$filename))
       # Prepend filename with Plots or Tables choice.
@@ -145,25 +217,36 @@ downloadServer <- function(id, download_list) {
         filename, sep = "_")
       shiny::textAreaInput(ns("filename"), "File Basename:", filename)
     })
-    output$Plots <- shiny::downloadHandler(
-      filename = function()
-        paste0(shiny::req(input$filename), ".", tolower(input$png_pdf)),
+    # Download handlers for QTL plot
+    download_filename <- function(mime = "png") {
+      function() {
+        paste0(shiny::req(input$filename), "_",
+               format(Sys.time(), "%Y%m%d"), ".", mime)
+      }
+    }
+    output$download_plot_png <- shiny::downloadHandler(
+      filename = download_filename("png"),
       content = function(file) {
-        shiny::req(input$Plots_choice, input$ratio, input$png_pdf)
-        switch(input$png_pdf,
-          "PNG" = {
-            grDevices::png(file, width = plot_width(), height = plot_height())
-          },
-          "PDF" = {
-            grDevices::pdf(file, width = plot_width() / 72,
-                           height = plot_height() / 72)
-          })
-        print(selected_plot())
-        grDevices::dev.off()
-      },
-      contentType = "application/pdf")
+        shiny::req(selected_plot())
+        # Use dynamic width/height for saving
+        ggplot2::ggsave(file, plot = selected_plot(), 
+          width = plot_width_rv()/96, # Assuming 96 DPI for conversion from px
+          height = plot_height_rv()/96, 
+          dpi = 300, units = "in")
+      }
+    )
+    output$download_plot_pdf <- shiny::downloadHandler(
+      filename = download_filename("pdf"),
+      content = function(file) {
+        shiny::req(selected_plot())
+        ggplot2::ggsave(file, plot = selected_plot(), 
+          width = plot_width_rv()/96, 
+          height = plot_height_rv()/96, 
+          device = cairo_pdf, units = "in") # Use cairo_pdf for better PDF quality
+      }
+    )
     output$Tables <- shiny::downloadHandler(
-      filename = function() paste0(shiny::req(input$filename), ".csv"),
+      filename = download_filename("csv"),
       content = function(file) {
         selected_table()
         utils::write.csv(table, file, row.names = FALSE)
@@ -194,8 +277,6 @@ downloadOutput <- function(id) {
       shiny::uiOutput(ns("filename")),
       col_widths = c(3,9)))
 }
-#' @rdname downloadApp
-#' @export
 downloadShow <- function(id) {
   ns <- shiny::NS(id)
   shiny::uiOutput(ns("download_list"))
