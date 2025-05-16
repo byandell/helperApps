@@ -2,6 +2,8 @@
 #'
 #' @param id identifier for shiny reactive
 #' @param download_list reactiveValues object
+#' @param selected_item index to selected plot or table
+#' @param plot_table either "Plots" or "Tables"
 #'
 #' @importFrom shiny br downloadButton downloadHandler h5 moduleServer NS
 #'             observeEvent radioButtons reactive reactiveValues renderPlot
@@ -10,7 +12,7 @@
 #' @importFrom grDevices dev.off pdf png
 #' @importFrom bslib card card_header layout_columns page_sidebar sidebar
 #' @export
-downloadApp <- function(id) {
+downloadApp <- function(selected_item = 1, plot_table = "Plots") {
   ui <- bslib::page_sidebar(
     title = "Test Kalynn Download",
     sidebar = bslib::sidebar("side_panel", width = 400,
@@ -39,7 +41,9 @@ downloadApp <- function(id) {
         twelve = shiny::reactive(matrix(1:12,nrow=3)),
         twenty = shiny::reactive(matrix(1:20,nrow=4)))
     )
-    downloadServer("download", download_list)
+    downloadServer("download", download_list,
+                   selected_item = shiny::reactive(selected_item),
+                   plot_table = shiny::reactive(plot_table))
   }
   shiny::shinyApp(ui, server)
 }
