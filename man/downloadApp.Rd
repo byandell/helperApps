@@ -10,7 +10,12 @@
 \usage{
 downloadApp(id)
 
-downloadServer(id, download_list)
+downloadServer(
+  id,
+  download_list,
+  selected_item = shiny::reactive(1),
+  plot_table = shiny::reactive("Plots")
+)
 
 downloadInput(id)
 
