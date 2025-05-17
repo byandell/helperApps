@@ -24,7 +24,7 @@ downloadApp <- function(selected_item = 1, plot_table = "Plots") {
     ),
     bslib::card(
       bslib::card_header("Download Preview"),
-      downloadShow("download")    # Only for Preview of downloadApp().
+      downloadPreview("download")    # Only for Preview of downloadApp().
     )
   )
   server <- function(input, output, session) { 
@@ -84,7 +84,8 @@ downloadServer <- function(id, download_list,
       }
     })
     
-    output$download_list <- shiny::renderUI({
+    # Preview download app.
+    output$preview <- shiny::renderUI({
       list(
         "filename",
         download_list$filename,
@@ -98,11 +99,22 @@ downloadServer <- function(id, download_list,
         "tables", 
         paste(names(download_list$tables), collapse = ", "),
         switch(shiny::req(plot_table()),
-          # ** this only shows last plot **
           Plots  = shiny::uiOutput(ns("preview_plots")),
           Tables = DT::dataTableOutput(ns("preview_table")))
       )
     })
+    output$preview_plots <- shiny::renderUI({
+      width <- shiny::reactive(plot_width_rv() / 2)
+      height <- shiny::reactive(plot_height_rv() / 2)
+      shiny::renderPlot({
+        shiny::req(selected_plot())
+      }, width = width, height = height)
+    })
+    output$preview_table <- DT::renderDataTable({
+      shiny::req(selected_table())
+    })
+    
+    # Select plot or table from `download_list`.
     choices_download <- function(type) {
       # Choices excluding any in `no_download` vector.
       choices = names(download_list[[type]])
@@ -116,25 +128,20 @@ downloadServer <- function(id, download_list,
       plot_choice <- choices_download("plots")[shiny::req(selected_item())]
       shiny::req(download_list$plots[[plot_choice]]())
     })
-    output$preview_plots <- shiny::renderUI({
-      width <- shiny::reactive(plot_width_rv() / 2)
-      height <- shiny::reactive(plot_height_rv() / 2)
-      shiny::renderPlot({
-        shiny::req(selected_plot())
-      }, width = width, height = height)
-    })
     selected_table <- shiny::reactive({
       table_choice <- choices_download("tables")[shiny::req(selected_item())]
       shiny::req(download_list$tables[[table_choice]]())
     })
-    output$preview_table <- DT::renderDataTable({
-      shiny::req(selected_table())
-    })
+    
+    ## Switch betwwen Plots or Tables.
     output$choices <- shiny::renderUI({
       switch(shiny::req(plot_table()),
-        Plots = shiny::uiOutput(ns("choices_Plots"))
+        Plots = shiny::uiOutput(ns("choices_Plots")),
+        Tables = shiny::uiOutput(ns("choices_Tables")),
       )
     })
+    
+    ## Plot buttons.
     output$choices_Plots <- shiny::renderUI({
       # Use supplied `create_` functions or standard `shiny`.
       if (!exists("create_button", mode = "function")) {
@@ -195,19 +202,28 @@ downloadServer <- function(id, download_list,
           create_lever_switch(ns("color_toggle"), "Alt Colors", value = TRUE)
         )
       )
-    }) 
+    })
+    
+    # Download filename.
+    base_filename <- shiny::reactive({
+      paste0(shiny::req(download_list$filename),
+             "_", format(Sys.time(), "%Y%m%d"))
+    })
+    # Optional UI to edit filename
     output$filename <- renderUI({
-      filename <- paste0(shiny::req(download_list$filename),
-                         "_", format(Sys.time(), "%Y%m%d"))
+      filename <- shiny::req(base_filename())
       shiny::textAreaInput(ns("filename"), "File Basename:", filename)
     })
-    # Download handlers for QTL plot
     download_filename <- function(mime = "png") {
       function() {
-        paste0(shiny::req(input$filename), "_",
-               format(Sys.time(), "%Y%m%d"), ".", mime)
+        filename <- shiny::req(base_filename())
+        if(shiny::isTruthy(input$filename))
+          filename <- input$filename
+        paste0(filename, ".", mime)
       }
     }
+    
+    # Download handlers for plot
     output$download_plot_png <- shiny::downloadHandler(
       filename = download_filename("png"),
       content = function(file) {
@@ -229,12 +245,18 @@ downloadServer <- function(id, download_list,
           device = cairo_pdf, units = "in") # Use cairo_pdf for better PDF quality
       }
     )
+    
+    # Download handlers for table
+    output$choices_Tables <- shiny::renderUI({
+      shiny::downloadButton(ns("Tables"), "Table", class = "btn-sm")
+    })
     output$Tables <- shiny::downloadHandler(
       filename = download_filename("csv"),
       content = function(file) {
         selected_table()
         utils::write.csv(table, file, row.names = FALSE)
-      })
+      }
+    )
   })
 }
 #' @rdname downloadApp
@@ -252,12 +274,10 @@ downloadUI <- function(id) {
 #' @export
 downloadOutput <- function(id) {
   ns <- shiny::NS(id)
-  list(
-    shiny::h5("Download:"),
-    shiny::uiOutput(ns("filename")))
+  shiny::uiOutput(ns("filename"))
 }
-downloadShow <- function(id) {
+downloadPreview <- function(id) {
   ns <- shiny::NS(id)
-  shiny::uiOutput(ns("download_list"))
+  shiny::uiOutput(ns("preview"))
 }
   
