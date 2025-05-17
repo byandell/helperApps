@@ -16,11 +16,11 @@ downloadApp <- function(selected_item = 1, plot_table = "Plots") {
   ui <- bslib::page_sidebar(
     title = "Test Kalynn Download",
     sidebar = bslib::sidebar("side_panel", width = 400,
-      #downloadUI("download"), # (nothing for now)
       downloadOutput("download") # downloadButton, filename
     ),
     bslib::card(
-      downloadInput("download")     # inputs for Plots or Tables
+      downloadInput("download"), # inputs for Plots or Tables
+      downloadUI("download")     # width and height for plot
     ),
     bslib::card(
       bslib::card_header("Download Preview"),
@@ -134,10 +134,15 @@ downloadServer <- function(id, download_list,
     })
     
     ## Switch betwwen Plots or Tables.
-    output$choices <- shiny::renderUI({
+    output$buttons <- shiny::renderUI({
       switch(shiny::req(plot_table()),
         Plots = shiny::uiOutput(ns("choices_Plots")),
-        Tables = shiny::uiOutput(ns("choices_Tables")),
+        Tables = shiny::uiOutput(ns("choices_Tables"))
+      )
+    })
+    output$dims <- shiny::renderUI({
+      switch(shiny::req(plot_table()),
+             Plots = shiny::uiOutput(ns("dims_Plots"))
       )
     })
     
@@ -153,54 +158,54 @@ downloadServer <- function(id, download_list,
       } else {
         button_class <- "btn-sm btn-light"
       }
+      # Row for plot title, download buttons, and preset buttons
+      shiny::div(
+        style = paste("display: flex; justify-content: space-between;",
+                      "align-items: center; margin-bottom: 10px;",
+                      "flex-wrap: wrap;"),
+        shiny::h4(
+          "LOD Score Plot",
+          style = "margin: 0 15px 0 0; color: #2c3e50; font-weight: 600;"),
+        shiny::div(
+          style = paste("display: flex; align-items: center; gap: 10px;",
+                        "flex-grow: 1; justify-content: flex-end;"),
+          # Preset Aspect Ratio Buttons
+          shiny::div(
+            style = "display: flex; gap: 5px; margin-right: 15px;",
+            shiny::tagList(
+              create_button(ns("preset_1to1"), "1:1", class = button_class),
+              create_button(ns("preset_3to2"), "3:2", class = button_class),
+              create_button(ns("preset_16to9"), "16:9", class = button_class)
+            )
+          ),
+          # Download Buttons
+          shiny::tagList(
+            create_download_button(ns("download_plot_png"), "PNG",
+                                   class = "btn-sm"),
+            create_download_button(ns("download_plot_pdf"), "PDF",
+                                   class = "btn-sm")
+          )
+        )
+      )
+    })
+    output$dims_Plots <- shiny::renderUI({
       if (!exists("create_numeric_input", mode = "function")) {
         create_numeric_input <- shiny::numericInput
       }
       if (!exists("create_lever_switch", mode = "function")) {
         create_lever_switch <- shiny::checkboxInput
       }
-      list(
-        # Row for plot title, download buttons, and preset buttons
+      # Row for plot dimension controls and color toggle
+      shiny::div(
+        style = "display: flex; gap: 10px; align-items: center; margin-bottom: 5px; flex-wrap: wrap;",
         shiny::div(
-          style = paste("display: flex; justify-content: space-between;",
-                        "align-items: center; margin-bottom: 10px;",
-                        "flex-wrap: wrap;"),
-          shiny::h4(
-            "LOD Score Plot",
-            style = "margin: 0 15px 0 0; color: #2c3e50; font-weight: 600;"),
-          shiny::div(
-            style = paste("display: flex; align-items: center; gap: 10px;",
-                          "flex-grow: 1; justify-content: flex-end;"),
-            # Preset Aspect Ratio Buttons
-            shiny::div(
-              style = "display: flex; gap: 5px; margin-right: 15px;",
-              shiny::tagList(
-                create_button(ns("preset_1to1"), "1:1", class = button_class),
-                create_button(ns("preset_3to2"), "3:2", class = button_class),
-                create_button(ns("preset_16to9"), "16:9", class = button_class)
-              )
-            ),
-            # Download Buttons
-            shiny::tagList(
-              create_download_button(ns("download_plot_png"), "PNG",
-                                     class = "btn-sm"),
-              create_download_button(ns("download_plot_pdf"), "PDF",
-                                     class = "btn-sm")
-            )
-          )
+          style = "display: flex; align-items: center; gap: 10px;",
+          create_numeric_input(ns("plot_width"), "Width:",
+                               value = 1200, min = 400, max = 2000, step = 50, width = "100px"),
+          create_numeric_input(ns("plot_height"), "Height:",
+                               value = 600, min = 300, max = 1200, step = 50, width = "100px")
         ),
-        # Row for plot dimension controls and color toggle
-        shiny::div(
-          style = "display: flex; gap: 10px; align-items: center; margin-bottom: 5px; flex-wrap: wrap;",
-          shiny::div(
-            style = "display: flex; align-items: center; gap: 10px;",
-            create_numeric_input(ns("plot_width"), "Width:",
-              value = 1200, min = 400, max = 2000, step = 50, width = "100px"),
-            create_numeric_input(ns("plot_height"), "Height:",
-              value = 600, min = 300, max = 1200, step = 50, width = "100px")
-          ),
-          create_lever_switch(ns("color_toggle"), "Alt Colors", value = TRUE)
-        )
+        create_lever_switch(ns("color_toggle"), "Alt Colors", value = TRUE)
       )
     })
     
@@ -263,12 +268,13 @@ downloadServer <- function(id, download_list,
 #' @export
 downloadInput <- function(id) {
   ns <- shiny::NS(id)
-  shiny::uiOutput(ns("choices"))
+  shiny::uiOutput(ns("buttons"))
 }
 #' @rdname downloadApp
 #' @export
 downloadUI <- function(id) {
   ns <- shiny::NS(id)
+  shiny::uiOutput(ns("dims"))
 }
 #' @rdname downloadApp
 #' @export

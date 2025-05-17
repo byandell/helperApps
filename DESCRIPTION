@@ -1,5 +1,5 @@
 Package: helperApps
-Version: 0.2.3
+Version: 0.2.4
 Date: 2025-05-17
 Title: Shiny app modules for reuse in other packages
 Description: Tools to build Shiny Apps for data visualization.
