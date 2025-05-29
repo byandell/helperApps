@@ -24,4 +24,6 @@ UI/UX.
     - [orphaned](inst/Projects/orphaned) (orphaned ideas)
     - [qtlApp](inst/Projects/qtlApp) (see [qtlApp](https://github.com/AttieLab-Systems-Genetics/qtlApp))
     - [foundrShiny](inst/Projects/foundrShiny) (see [foundrShiny](https://github.com/AttieLab-Systems-Genetics/foundrShiny))
+    - [RPAshiny](inst/Projects/RPAshiny) (see [RPA_Shiny](https://github.com/byandell-envsys/RPA_Shiny)) [private]
+    - [qtl2shiny](inst/Projects/qtl2shiny) (see [qtl2shiny](https://github.com/AttieLab-Systems-Genetics/qtl2shiny)) [none yet]
     
