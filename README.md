@@ -104,7 +104,10 @@ These can get rather specialized for a complicated app such as
 `qtlApp` or `qtl2shiny`.
 Data are often stored in a `serial` format for quick access.
 It may be native R data ([`RDS`](https://www.geeksforgeeks.org/data-serialization-rds-using-r/)),
-fast serial data frame ([`FST`](https://www.fstpackage.org/))
+fast serial data frame (see
+[`FST`](https://www.fstpackage.org/)
+and
+[`qtl2fst`](https://cran.r-project.org/web/packages/qtl2fst/vignettes/qtl2fst.html)).
 or `SQLite` (see
 [RSQLite](https://cran.r-project.org/web/packages/RSQLite/vignettes/RSQLite.html)
 and/or
