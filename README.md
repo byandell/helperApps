@@ -1,5 +1,12 @@
 # helperApps
 
+- [Modular Shiny Helper Apps for Reuse](#modular-shiny-helper-apps-for-reuse)
+- [Modular Apps by Function](#modular-apps-by-function)
+  - [Importing Data](#importing-data)
+  - [Downloading Plots and Tables](#downloading-plots-and-tables)
+  - [Information About an App](#information-about-an-app)
+  - [Password Entry](#password-entry)
+
 ## Modular Shiny Helper Apps for Reuse
 
 See philosophy in
