@@ -1,0 +1,3 @@
+object,filename
+CSV_file,data/import.csv
+RDS_file,data/import.rds
