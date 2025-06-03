@@ -77,7 +77,7 @@ The prototypes are set up to read `CSV`, `XLSX` and `RDS`.
 The latter version also allows for `SHP` shapefiles
 for geospatial data.
 
-Typically, this imported file does a minimal import
+Typically, this does a minimal import
 of each `object` using the `filename`,
 relying on a function such as
 [import_data()](R/import_data.R).
@@ -90,15 +90,15 @@ are imported and massaged.
 Other parts of a larger app may use these objects as a way to access
 a larger body of data.
 For instance, the `file_directory` object for `qtlApp` shows where
-thousands of data files can be found for upload a
+thousands of data files can be found to upload a
 `selected_trait` into and display with the app.
 
 These can get rather specialized for a complicated app such as
 `qtlApp` or `qtl2shiny`.
 Data are often stored in a `serial` format for quick access.
 It may be native R data (`RDS`),
-fast serial data frame (`[FST](https://www.fstpackage.org/)`)
-or SQLite (see
+fast serial data frame ([`FST`](https://www.fstpackage.org/))
+or `SQLite` (see
 [RSQLite](https://cran.r-project.org/web/packages/RSQLite/vignettes/RSQLite.html)
 and/or
 [dbplyr](https://dbplyr.tidyverse.org/articles/dbplyr.html)).
